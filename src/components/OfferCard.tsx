@@ -1,57 +1,72 @@
 import { motion } from "framer-motion";
-import { MapPin, Star } from "lucide-react";
-import { HelpOffer } from "@/lib/types";
-import { CATEGORY_META, formatBRL } from "@/lib/categories";
+import { Star, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CATEGORY_META, formatBRL } from "@/lib/categories";
+import { HelpOffer } from "@/lib/types";
+import { formatDistance } from "@/lib/geo";
 
-export function OfferCard({ offer, index = 0 }: { offer: HelpOffer; index?: number }) {
+interface Props {
+  offer: HelpOffer;
+  index?: number;
+  onContact?: (o: HelpOffer) => void;
+  onView?: (o: HelpOffer) => void;
+}
+
+export function OfferCard({ offer, index = 0, onContact, onView }: Props) {
   const meta = CATEGORY_META[offer.category];
   const Icon = meta.icon;
-  const initials = offer.freelancerName.split(" ").map(s => s[0]).slice(0, 2).join("");
-  const priceLabel = offer.pricing.type === "hour" ? "/h" : " fixo";
+  const f = offer.freelancer;
+  const name = f?.display_name || f?.full_name || "Profissional";
+  const initials = name.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase();
+  const rating = f?.rating_avg ?? 0;
+  const reviews = f?.reviews_count ?? 0;
+  const priceLabel = `${formatBRL(offer.pricing_value)}${offer.pricing_type === "hour" ? "/h" : ""}`;
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.3), ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ y: -4 }}
-      className="group relative overflow-hidden rounded-xl border bg-gradient-card shadow-sm transition-shadow hover:shadow-elev"
+      viewport={{ once: true }}
+      transition={{ duration: 0.4, delay: index * 0.04 }}
+      className="group rounded-2xl border bg-card p-5 hover:shadow-elev hover:-translate-y-0.5 transition-all"
     >
-      <div className="bg-gradient-hero h-1.5" />
-      <div className="p-5">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-12 w-12 ring-2 ring-accent/20">
-            <AvatarFallback className="bg-primary text-primary-foreground font-semibold">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-display text-sm font-semibold truncate">{offer.freelancerName}</h3>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Star className="h-3 w-3 fill-accent text-accent" />
-              <span className="font-medium text-foreground">{offer.rating.toFixed(1)}</span>
-              <span>· {offer.reviews} avaliações</span>
-            </div>
+      <div className="flex items-start gap-3">
+        <Avatar className="h-12 w-12 ring-2 ring-secondary">
+          {f?.avatar_url ? <AvatarImage src={f.avatar_url} alt={name} /> : null}
+          <AvatarFallback className="bg-primary text-primary-foreground font-bold">{initials}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <h3 className="font-display font-semibold leading-tight truncate">{name}</h3>
+          <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+            <Star className="h-3 w-3 fill-accent text-accent" />
+            <span className="font-medium text-foreground">{rating > 0 ? rating.toFixed(1) : "Novo"}</span>
+            {reviews > 0 && <span>· {reviews} avaliações</span>}
           </div>
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.tone}`}>
-            <Icon className="h-3 w-3" /> {meta.label}
-          </span>
         </div>
+        <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold ${meta.tone}`}>
+          <Icon className="h-3 w-3" /> {meta.label}
+        </span>
+      </div>
 
-        <h4 className="mt-4 font-display text-base font-semibold leading-tight">{offer.serviceName}</h4>
-        <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">{offer.description}</p>
+      <h4 className="mt-4 font-display text-base font-semibold line-clamp-1">{offer.service_name}</h4>
+      <p className="mt-1 text-sm text-muted-foreground line-clamp-2 leading-relaxed">{offer.description}</p>
 
-        <div className="mt-4 flex items-center justify-between border-t pt-4">
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5" /> {offer.coverage}
-          </span>
-          <span className="font-display font-bold text-primary">
-            {formatBRL(offer.pricing.value)}<span className="text-xs font-normal text-muted-foreground">{priceLabel}</span>
-          </span>
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {offer.city}</span>
+        {offer.distance_km != null && <span className="inline-flex items-center gap-1 text-primary"><MapPin className="h-3 w-3" />{formatDistance(offer.distance_km)}</span>}
+        {offer.coverage && <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {offer.coverage}</span>}
+      </div>
+
+      <div className="mt-4 flex items-center justify-between border-t pt-3">
+        <div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider">A partir de</div>
+          <div className="font-display text-lg font-bold text-primary">{priceLabel}</div>
         </div>
-
-        <Button size="sm" variant="hero" className="w-full mt-4">Contratar</Button>
+        <div className="flex gap-2">
+          {onView && <Button size="sm" variant="outline" onClick={() => onView(offer)}>Perfil</Button>}
+          {onContact && <Button size="sm" variant="navy" onClick={() => onContact(offer)}>Contratar</Button>}
+        </div>
       </div>
     </motion.article>
   );

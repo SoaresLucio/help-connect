@@ -19,3 +19,6 @@ export const CATEGORIES = Object.keys(CATEGORY_META) as RequestCategory[];
 
 export const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+
+export const formatBRLCents = (cents: number) =>
+  (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

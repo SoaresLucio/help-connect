@@ -1,136 +1,184 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { useSearchParams } from "react-router-dom";
-import { Filter, MapPin, SlidersHorizontal } from "lucide-react";
-import { useData } from "@/hooks/useData";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { HelpRequest, HelpOffer } from "@/lib/types";
+import { CATEGORIES, CATEGORY_META, formatBRL } from "@/lib/categories";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { RequestCard } from "@/components/RequestCard";
 import { OfferCard } from "@/components/OfferCard";
-import { CATEGORIES, CATEGORY_META, formatBRL } from "@/lib/categories";
-import { RequestCategory } from "@/lib/types";
+import { RequestCard } from "@/components/RequestCard";
+import { Search, MapPin, Loader2, X } from "lucide-react";
+import { haversineKm, getBrowserLocation, getStoredLocation, saveStoredLocation } from "@/lib/geo";
+import { ContactProfessionalDialog } from "@/components/ContactProfessionalDialog";
+import { ApplyToRequestDialog } from "@/components/ApplyToRequestDialog";
+import { useNavigate } from "react-router-dom";
 
 export default function FeedPage() {
-  const { requests, offers } = useData();
-  const [params] = useSearchParams();
-  const initialCat = (params.get("cat") as RequestCategory) || null;
+  const { activeRole } = useAuth();
+  const navigate = useNavigate();
+  const isFreelancer = activeRole === "freelancer";
 
-  const [activeCats, setActiveCats] = useState<RequestCategory[]>(initialCat ? [initialCat] : []);
-  const [maxBudget, setMaxBudget] = useState(3000);
+  const [offers, setOffers] = useState<HelpOffer[]>([]);
+  const [requests, setRequests] = useState<HelpRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [search, setSearch] = useState("");
+  const [cat, setCat] = useState<string | null>(null);
   const [city, setCity] = useState("");
-  const [tab, setTab] = useState<"requests" | "offers">("requests");
+  const [radiusKm, setRadiusKm] = useState(50);
+  const [useGeo, setUseGeo] = useState(false);
+  const [geo, setGeo] = useState<{ latitude: number; longitude: number } | null>(getStoredLocation());
 
-  const toggleCat = (c: RequestCategory) =>
-    setActiveCats(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
+  const [contactOffer, setContactOffer] = useState<HelpOffer | null>(null);
+  const [applyRequest, setApplyRequest] = useState<HelpRequest | null>(null);
 
-  const filteredRequests = useMemo(() => requests.filter(r =>
-    (activeCats.length === 0 || activeCats.includes(r.category)) &&
-    r.budget <= maxBudget &&
-    (!city || r.city.toLowerCase().includes(city.toLowerCase()) || r.neighborhood.toLowerCase().includes(city.toLowerCase()))
-  ), [requests, activeCats, maxBudget, city]);
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      if (isFreelancer) {
+        const { data } = await supabase
+          .from("help_requests")
+          .select("*, author:profiles!help_requests_author_id_fkey(*)")
+          .eq("status", "open")
+          .order("created_at", { ascending: false })
+          .limit(60);
+        setRequests((data as any) ?? []);
+      } else {
+        const { data } = await supabase
+          .from("help_offers")
+          .select("*, freelancer:profiles!help_offers_freelancer_id_fkey(*)")
+          .eq("active", true)
+          .order("created_at", { ascending: false })
+          .limit(60);
+        setOffers((data as any) ?? []);
+      }
+      setLoading(false);
+    })();
+  }, [isFreelancer]);
 
-  const filteredOffers = useMemo(() => offers.filter(o =>
-    (activeCats.length === 0 || activeCats.includes(o.category)) &&
-    o.pricing.value <= maxBudget &&
-    (!city || o.city.toLowerCase().includes(city.toLowerCase()))
-  ), [offers, activeCats, maxBudget, city]);
+  const enableGeo = async () => {
+    try {
+      const pos = await getBrowserLocation();
+      setGeo(pos); saveStoredLocation(pos); setUseGeo(true);
+    } catch { /* ignore */ }
+  };
+
+  const filteredOffers = useMemo(() => {
+    let arr = offers.filter(o =>
+      (!cat || o.category === cat) &&
+      (!city || o.city.toLowerCase().includes(city.toLowerCase())) &&
+      (!search || `${o.service_name} ${o.description}`.toLowerCase().includes(search.toLowerCase()))
+    );
+    if (useGeo && geo) {
+      arr = arr.map(o => o.latitude && o.longitude
+        ? { ...o, distance_km: haversineKm(geo, { latitude: o.latitude, longitude: o.longitude }) }
+        : { ...o, distance_km: undefined }
+      ).filter(o => o.distance_km == null || o.distance_km <= radiusKm)
+       .sort((a, b) => (a.distance_km ?? 1e9) - (b.distance_km ?? 1e9));
+    }
+    return arr;
+  }, [offers, cat, city, search, useGeo, geo, radiusKm]);
+
+  const filteredRequests = useMemo(() => {
+    let arr = requests.filter(r =>
+      (!cat || r.category === cat) &&
+      (!city || r.city.toLowerCase().includes(city.toLowerCase())) &&
+      (!search || `${r.title} ${r.description}`.toLowerCase().includes(search.toLowerCase()))
+    );
+    if (useGeo && geo) {
+      arr = arr.map(r => r.latitude && r.longitude
+        ? { ...r, distance_km: haversineKm(geo, { latitude: r.latitude, longitude: r.longitude }) }
+        : { ...r, distance_km: undefined }
+      ).filter(r => r.distance_km == null || r.distance_km <= radiusKm)
+       .sort((a, b) => (a.distance_km ?? 1e9) - (b.distance_km ?? 1e9));
+    }
+    return arr;
+  }, [requests, cat, city, search, useGeo, geo, radiusKm]);
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-bold">Feed inteligente</h1>
-        <p className="text-muted-foreground text-sm mt-1">Encontre solicitações e profissionais filtrados pelos seus critérios.</p>
+        <h1 className="font-display text-3xl font-bold">{isFreelancer ? "Demandas abertas" : "Profissionais disponíveis"}</h1>
+        <p className="text-muted-foreground mt-1">
+          {isFreelancer ? "Encontre solicitações de help próximas e envie sua proposta." : "Encontre profissionais verificados na sua região."}
+        </p>
       </div>
 
-      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-        {/* FILTERS */}
-        <aside className="rounded-xl border bg-card p-5 h-fit lg:sticky lg:top-24 space-y-6">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 text-accent" />
-            <h3 className="font-display font-semibold">Filtros</h3>
+      <div className="rounded-2xl border bg-card p-4 lg:p-5 space-y-4">
+        <div className="grid lg:grid-cols-[1fr_240px_auto] gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="pl-9" />
           </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5" /> Cidade ou bairro
-            </label>
-            <Input placeholder="Ex: São Paulo" value={city} onChange={e => setCity(e.target.value)} />
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={city} onChange={e => setCity(e.target.value)} placeholder="Filtrar por cidade" className="pl-9" />
           </div>
+          <Button variant={useGeo ? "navy" : "outline"} onClick={() => geo ? setUseGeo(v => !v) : enableGeo()}>
+            <MapPin className="h-4 w-4" /> {useGeo ? "Próximos de mim" : "Usar minha localização"}
+          </Button>
+        </div>
 
-          <div className="space-y-3">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-muted-foreground">Orçamento máximo</span>
-              <span className="font-semibold text-primary">{formatBRL(maxBudget)}</span>
-            </div>
-            <Slider value={[maxBudget]} onValueChange={v => setMaxBudget(v[0])} min={100} max={5000} step={100} />
+        {useGeo && (
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Raio: {radiusKm} km</span>
+            <Slider value={[radiusKm]} onValueChange={v => setRadiusKm(v[0])} min={1} max={200} step={1} className="flex-1" />
           </div>
+        )}
 
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Filter className="h-3.5 w-3.5" /> Categorias
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {CATEGORIES.map(c => {
-                const meta = CATEGORY_META[c];
-                const active = activeCats.includes(c);
-                return (
-                  <button
-                    key={c}
-                    onClick={() => toggleCat(c)}
-                    className={`text-xs font-medium rounded-full px-2.5 py-1 transition-all ${
-                      active ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/70"
-                    }`}
-                  >
-                    {meta.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {(activeCats.length || city || maxBudget < 5000) && (
-            <Button variant="ghost" size="sm" className="w-full" onClick={() => { setActiveCats([]); setCity(""); setMaxBudget(3000); }}>
-              Limpar filtros
-            </Button>
-          )}
-        </aside>
-
-        {/* RESULTS */}
-        <div>
-          <Tabs value={tab} onValueChange={v => setTab(v as any)}>
-            <TabsList>
-              <TabsTrigger value="requests">Solicitações ({filteredRequests.length})</TabsTrigger>
-              <TabsTrigger value="offers">Profissionais ({filteredOffers.length})</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="requests" className="mt-5">
-              {filteredRequests.length === 0
-                ? <EmptyState text="Nenhuma solicitação corresponde aos filtros." />
-                : <motion.div layout className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {filteredRequests.map((r, i) => <RequestCard key={r.id} request={r} index={i} />)}
-                  </motion.div>}
-            </TabsContent>
-
-            <TabsContent value="offers" className="mt-5">
-              {filteredOffers.length === 0
-                ? <EmptyState text="Nenhum profissional corresponde aos filtros." />
-                : <motion.div layout className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {filteredOffers.map((o, i) => <OfferCard key={o.id} offer={o} index={i} />)}
-                  </motion.div>}
-            </TabsContent>
-          </Tabs>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setCat(null)} className={`text-xs px-3 py-1.5 rounded-full border transition ${!cat ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:border-primary/30"}`}>Todas</button>
+          {CATEGORIES.map(c => {
+            const m = CATEGORY_META[c];
+            const Icon = m.icon;
+            const active = cat === c;
+            return (
+              <button key={c} onClick={() => setCat(c)} className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition ${active ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:border-primary/30"}`}>
+                <Icon className="h-3 w-3" /> {m.label}
+              </button>
+            );
+          })}
         </div>
       </div>
+
+      {loading ? (
+        <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      ) : isFreelancer ? (
+        filteredRequests.length === 0 ? (
+          <EmptyState text="Nenhuma demanda corresponde aos filtros." />
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredRequests.map((r, i) => <RequestCard key={r.id} request={r} index={i} onApply={setApplyRequest} />)}
+          </div>
+        )
+      ) : (
+        filteredOffers.length === 0 ? (
+          <EmptyState text="Nenhum profissional corresponde aos filtros." />
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredOffers.map((o, i) => (
+              <OfferCard key={o.id} offer={o} index={i}
+                onContact={setContactOffer}
+                onView={() => navigate(`/u/${o.freelancer_id}`)}
+              />
+            ))}
+          </div>
+        )
+      )}
+
+      <ContactProfessionalDialog offer={contactOffer} onClose={() => setContactOffer(null)} />
+      <ApplyToRequestDialog request={applyRequest} onClose={() => setApplyRequest(null)} />
     </div>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border-2 border-dashed bg-card/50 p-12 text-center">
-      <p className="text-sm text-muted-foreground">{text}</p>
+    <div className="rounded-2xl border bg-card p-10 text-center">
+      <X className="h-8 w-8 mx-auto text-muted-foreground" />
+      <p className="mt-3 text-sm text-muted-foreground">{text}</p>
     </div>
   );
 }

@@ -1,29 +1,34 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Compass, PlusSquare, Briefcase, Users, MessageSquare, UserCircle,
-  LogOut, Bell, Search, Building2, User as UserIcon, BriefcaseBusiness, Menu, X,
+  LogOut, Bell, Search, Building2, User as UserIcon, BriefcaseBusiness, Menu, X, Map, Inbox,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRole } from "@/lib/types";
 import { AuthDialog } from "@/components/AuthDialog";
+import { NotificationsPopover } from "@/components/NotificationsPopover";
 import { cn } from "@/lib/utils";
 
 const ROLE_META: Record<UserRole, { label: string; icon: any; color: string }> = {
   freelancer: { label: "Freelancer",      icon: BriefcaseBusiness, color: "bg-accent text-accent-foreground" },
   individual: { label: "Pessoa Física",   icon: UserIcon,          color: "bg-info text-info-foreground" },
   company:    { label: "Empresa",         icon: Building2,         color: "bg-success text-success-foreground" },
+  admin:      { label: "Admin",           icon: UserCircle,        color: "bg-primary text-primary-foreground" },
 };
 
-const NAV_BY_ROLE: Record<UserRole, { to: string; label: string; icon: any; end?: boolean }[]> = {
+type NavItem = { to: string; label: string; icon: any; end?: boolean };
+const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   individual: [
     { to: "/app",            label: "Visão geral", icon: LayoutDashboard, end: true },
-    { to: "/app/feed",       label: "Explorar profissionais", icon: Compass },
+    { to: "/app/feed",       label: "Profissionais", icon: Compass },
+    { to: "/app/mapa",       label: "Mapa",        icon: Map },
     { to: "/app/solicitar",  label: "Solicitar help", icon: PlusSquare },
     { to: "/app/mensagens",  label: "Mensagens", icon: MessageSquare },
     { to: "/app/perfil",     label: "Perfil", icon: UserCircle },
@@ -31,7 +36,9 @@ const NAV_BY_ROLE: Record<UserRole, { to: string; label: string; icon: any; end?
   freelancer: [
     { to: "/app",            label: "Visão geral", icon: LayoutDashboard, end: true },
     { to: "/app/feed",       label: "Demandas abertas", icon: Compass },
+    { to: "/app/mapa",       label: "Mapa",        icon: Map },
     { to: "/app/oferecer",   label: "Anunciar serviço", icon: PlusSquare },
+    { to: "/app/minhas-candidaturas", label: "Minhas candidaturas", icon: Inbox },
     { to: "/app/vagas",      label: "Vagas formais", icon: Briefcase },
     { to: "/app/mensagens",  label: "Mensagens", icon: MessageSquare },
     { to: "/app/perfil",     label: "Perfil", icon: UserCircle },
@@ -39,21 +46,38 @@ const NAV_BY_ROLE: Record<UserRole, { to: string; label: string; icon: any; end?
   company: [
     { to: "/app",            label: "Visão geral", icon: LayoutDashboard, end: true },
     { to: "/app/feed",       label: "Buscar profissionais", icon: Compass },
+    { to: "/app/mapa",       label: "Mapa",        icon: Map },
     { to: "/app/solicitar",  label: "Nova solicitação", icon: PlusSquare },
     { to: "/app/vagas",      label: "Minhas vagas", icon: Briefcase },
     { to: "/app/candidatos", label: "Candidatos", icon: Users },
     { to: "/app/mensagens",  label: "Mensagens", icon: MessageSquare },
     { to: "/app/perfil",     label: "Perfil da empresa", icon: UserCircle },
   ],
+  admin: [
+    { to: "/app",            label: "Visão geral", icon: LayoutDashboard, end: true },
+  ],
 };
 
 export default function DashboardLayout() {
-  const { user, logout } = useAuth();
+  const { user, profile, activeRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [authOpen, setAuthOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { unreadCount } = useNotifications();
 
-  useEffect(() => { if (!user) setAuthOpen(true); }, [user]);
+  useEffect(() => { if (!loading && !user) setAuthOpen(true); }, [loading, user]);
+
+  // redireciona para onboarding se incompleto
+  useEffect(() => {
+    if (!loading && user && profile && !profile.onboarding_completed) {
+      navigate("/onboarding", { replace: true });
+    }
+  }, [loading, user, profile, navigate]);
+
+  if (loading) {
+    return <div className="min-h-screen grid place-items-center bg-gradient-soft"><div className="animate-pulse text-muted-foreground">Carregando...</div></div>;
+  }
 
   if (!user) {
     return (
@@ -72,16 +96,17 @@ export default function DashboardLayout() {
     );
   }
 
-  const nav = NAV_BY_ROLE[user.role];
-  const roleMeta = ROLE_META[user.role];
+  const role: UserRole = activeRole ?? "individual";
+  const nav = NAV_BY_ROLE[role] ?? NAV_BY_ROLE.individual;
+  const roleMeta = ROLE_META[role];
   const RoleIcon = roleMeta.icon;
-  const initials = user.name.split(" ").map(s => s[0]).slice(0, 2).join("");
+  const displayName = profile?.display_name || profile?.full_name || user.email || "Você";
+  const initials = displayName.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase();
 
   return (
     <div className="min-h-screen flex bg-secondary/30">
-      {/* SIDEBAR */}
       <AnimatePresence>
-        {(mobileOpen) && (
+        {mobileOpen && (
           <motion.div
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -104,10 +129,11 @@ export default function DashboardLayout() {
         <div className="px-4">
           <div className="rounded-xl bg-sidebar-accent/60 p-3 flex items-center gap-3">
             <Avatar className="h-10 w-10 ring-2 ring-sidebar-primary/30">
+              {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} /> : null}
               <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground font-bold text-sm">{initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold truncate">{user.name}</div>
+              <div className="text-sm font-semibold truncate">{displayName}</div>
               <div className="text-[10px] text-sidebar-foreground/70 truncate">{user.email}</div>
             </div>
           </div>
@@ -121,30 +147,16 @@ export default function DashboardLayout() {
             const Icon = item.icon;
             return (
               <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
+                key={item.to} to={item.to} end={item.end}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) => cn(
                   "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  isActive ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                           : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                 )}
               >
-                {({ isActive }) => (
-                  <>
-                    {isActive && (
-                      <motion.span
-                        layoutId="active-pill"
-                        className="absolute inset-0 rounded-lg bg-sidebar-primary -z-10"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      />
-                    )}
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span>{item.label}</span>
-                  </>
-                )}
+                <Icon className="h-4 w-4 shrink-0" />
+                <span>{item.label}</span>
               </NavLink>
             );
           })}
@@ -152,7 +164,7 @@ export default function DashboardLayout() {
 
         <div className="p-4 border-t border-sidebar-border">
           <button
-            onClick={() => { logout(); navigate("/"); }}
+            onClick={async () => { await signOut(); navigate("/"); }}
             className="w-full inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
           >
             <LogOut className="h-4 w-4" /> Sair da conta
@@ -160,7 +172,6 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-      {/* MAIN */}
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="sticky top-0 z-30 h-16 border-b bg-background/80 backdrop-blur-xl flex items-center gap-3 px-4 lg:px-8">
           <button className="lg:hidden p-2" onClick={() => setMobileOpen(true)}><Menu className="h-5 w-5" /></button>
@@ -168,19 +179,23 @@ export default function DashboardLayout() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar serviços, freelancers, vagas..." className="pl-9 bg-secondary/50 border-secondary" />
           </div>
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-accent" />
-          </Button>
+          <NotificationsPopover>
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold grid place-items-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Button>
+          </NotificationsPopover>
         </header>
 
         <main className="flex-1 p-4 lg:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             >
               <Outlet />
