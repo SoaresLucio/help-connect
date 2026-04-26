@@ -25,7 +25,7 @@ const ROLES: { value: UserRole; label: string; desc: string; icon: any }[] = [
 ];
 
 export function AuthDialog({ open, onOpenChange, defaultRole = "individual", defaultMode = "signin" }: Props) {
-  const { loginWithEmail, loginWithGoogle } = useAuth();
+  const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [role, setRole] = useState<UserRole>(defaultRole);
   const [mode, setMode] = useState(defaultMode);
@@ -37,10 +37,18 @@ export function AuthDialog({ open, onOpenChange, defaultRole = "individual", def
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) { toast.error("Preencha email e senha"); return; }
+    if (mode === "signup" && !name.trim()) { toast.error("Informe seu nome"); return; }
+    if (password.length < 6) { toast.error("Senha de pelo menos 6 caracteres"); return; }
     setLoading(true);
     try {
-      await loginWithEmail(email, password, role, mode === "signup" ? name : undefined);
-      toast.success("Bem-vindo ao HelpAqui!");
+      const res = mode === "signup"
+        ? await signUpWithEmail(email, password, name, role)
+        : await signInWithEmail(email, password);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(mode === "signup" ? "Conta criada! Bem-vindo." : "Bem-vindo de volta!");
       onOpenChange(false);
       navigate("/app");
     } finally { setLoading(false); }
@@ -49,10 +57,10 @@ export function AuthDialog({ open, onOpenChange, defaultRole = "individual", def
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      await loginWithGoogle(role);
-      toast.success("Conectado com Google");
-      onOpenChange(false);
-      navigate("/app");
+      localStorage.setItem("helpaqui.activeRole", role);
+      await signInWithGoogle();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha no login com Google");
     } finally { setLoading(false); }
   };
 
@@ -71,20 +79,15 @@ export function AuthDialog({ open, onOpenChange, defaultRole = "individual", def
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Role selector */}
           <div className="grid grid-cols-3 gap-2">
             {ROLES.map(r => {
               const Icon = r.icon;
               const active = role === r.value;
               return (
                 <button
-                  key={r.value}
-                  type="button"
-                  onClick={() => setRole(r.value)}
+                  key={r.value} type="button" onClick={() => setRole(r.value)}
                   className={`relative rounded-lg border p-3 text-left transition-all ${
-                    active
-                      ? "border-accent bg-accent-soft shadow-sm"
-                      : "border-border bg-card hover:border-primary/30"
+                    active ? "border-accent bg-accent-soft shadow-sm" : "border-border bg-card hover:border-primary/30"
                   }`}
                 >
                   <Icon className={`h-4 w-4 mb-1.5 ${active ? "text-accent" : "text-muted-foreground"}`} />
@@ -100,15 +103,8 @@ export function AuthDialog({ open, onOpenChange, defaultRole = "individual", def
               <TabsTrigger value="signin">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Criar conta</TabsTrigger>
             </TabsList>
-
             <AnimatePresence mode="wait">
-              <motion.div
-                key={mode}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-              >
+              <motion.div key={mode} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
                 <TabsContent value="signin" forceMount={mode === "signin" ? true : undefined} className="mt-4 space-y-3">
                   <form onSubmit={handleEmail} className="space-y-3">
                     <Field label="E-mail" icon={Mail}>
@@ -118,7 +114,7 @@ export function AuthDialog({ open, onOpenChange, defaultRole = "individual", def
                       <Input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
                     </Field>
                     <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
-                      Entrar
+                      {loading ? "Entrando..." : "Entrar"}
                     </Button>
                   </form>
                 </TabsContent>
@@ -134,7 +130,7 @@ export function AuthDialog({ open, onOpenChange, defaultRole = "individual", def
                       <Input type="password" placeholder="Mínimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} />
                     </Field>
                     <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
-                      Criar conta
+                      {loading ? "Criando..." : "Criar conta"}
                     </Button>
                   </form>
                 </TabsContent>
@@ -144,18 +140,11 @@ export function AuthDialog({ open, onOpenChange, defaultRole = "individual", def
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">ou</span>
-            </div>
+            <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">ou</span></div>
           </div>
-
           <Button type="button" variant="outline" size="lg" className="w-full" onClick={handleGoogle} disabled={loading}>
             <GoogleIcon /> Continuar com Google
           </Button>
-
-          <p className="text-center text-xs text-muted-foreground">
-            Demonstração — nenhum dado é enviado a servidores reais.
-          </p>
         </div>
       </DialogContent>
     </Dialog>

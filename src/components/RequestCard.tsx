@@ -1,57 +1,68 @@
 import { motion } from "framer-motion";
-import { Calendar, MapPin, MessageSquare, Users } from "lucide-react";
-import { HelpRequest } from "@/lib/types";
-import { CATEGORY_META, formatBRL } from "@/lib/categories";
+import { MapPin, Clock, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CATEGORY_META, formatBRL } from "@/lib/categories";
+import { HelpRequest } from "@/lib/types";
+import { formatDistance } from "@/lib/geo";
 
-export function RequestCard({ request, index = 0 }: { request: HelpRequest; index?: number }) {
+interface Props {
+  request: HelpRequest;
+  index?: number;
+  onApply?: (r: HelpRequest) => void;
+}
+
+export function RequestCard({ request, index = 0, onApply }: Props) {
   const meta = CATEGORY_META[request.category];
   const Icon = meta.icon;
-  const initials = request.authorName.split(" ").map(s => s[0]).slice(0, 2).join("");
-  const date = new Date(request.scheduledAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  const author = request.author;
+  const name = author?.display_name || author?.full_name || "Solicitante";
+  const initials = name.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase();
+  const when = request.scheduled_at ? new Date(request.scheduled_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "Data flexível";
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.3), ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ y: -4 }}
-      className="group relative flex flex-col rounded-xl border bg-gradient-card p-5 shadow-sm transition-shadow hover:shadow-elev"
+      viewport={{ once: true }}
+      transition={{ duration: 0.4, delay: index * 0.04 }}
+      className="group rounded-2xl border bg-card overflow-hidden hover:shadow-elev hover:-translate-y-0.5 transition-all"
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${meta.tone}`}>
-          <Icon className="h-3.5 w-3.5" /> {meta.label}
-        </span>
-        <span className="font-display text-lg font-bold text-primary">{formatBRL(request.budget)}</span>
-      </div>
-
-      <h3 className="mt-3 font-display text-base font-semibold leading-tight text-foreground line-clamp-2">
-        {request.title}
-      </h3>
-      <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{request.description}</p>
-
-      <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {request.neighborhood}</span>
-        <span className="inline-flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> {date}</span>
-      </div>
-
-      <div className="mt-5 flex items-center justify-between border-t pt-4">
-        <div className="flex items-center gap-2">
-          <Avatar className="h-7 w-7">
-            <AvatarFallback className="bg-primary text-[10px] text-primary-foreground">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="leading-tight">
-            <div className="text-xs font-medium">{request.authorName}</div>
-            <div className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
-              <Users className="h-3 w-3" /> {request.proposalsCount} propostas
-            </div>
-          </div>
+      {request.image_urls?.[0] && (
+        <div className="aspect-[16/9] bg-muted overflow-hidden">
+          <img src={request.image_urls[0]} alt={request.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
         </div>
-        <Button size="sm" variant="navy" className="opacity-0 group-hover:opacity-100 transition-opacity">
-          <MessageSquare className="h-3.5 w-3.5" /> Enviar
-        </Button>
+      )}
+      <div className="p-5">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold ${meta.tone}`}>
+            <Icon className="h-3 w-3" /> {meta.label}
+          </span>
+          <span className="font-display text-xl font-bold text-primary">{formatBRL(request.budget)}</span>
+        </div>
+        <h3 className="font-display text-lg font-semibold leading-snug line-clamp-2">{request.title}</h3>
+        <p className="mt-1 text-sm text-muted-foreground line-clamp-2 leading-relaxed">{request.description}</p>
+
+        <div className="mt-4 flex items-center gap-2">
+          <Avatar className="h-7 w-7">
+            {author?.avatar_url ? <AvatarImage src={author.avatar_url} /> : null}
+            <AvatarFallback className="bg-secondary text-foreground text-[10px] font-semibold">{initials}</AvatarFallback>
+          </Avatar>
+          <span className="text-xs font-medium truncate flex-1">{name}</span>
+          <span className="text-[10px] text-muted-foreground">{request.proposals_count} propostas</span>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {request.city}{request.neighborhood ? `, ${request.neighborhood}` : ""}</span>
+          {request.distance_km != null && <span className="inline-flex items-center gap-1 text-primary">{formatDistance(request.distance_km)}</span>}
+          <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {when}</span>
+        </div>
+
+        {onApply && (
+          <Button size="sm" variant="hero" className="w-full mt-4" onClick={() => onApply(request)}>
+            <MessageSquare className="h-4 w-4" /> Enviar proposta
+          </Button>
+        )}
       </div>
     </motion.article>
   );
