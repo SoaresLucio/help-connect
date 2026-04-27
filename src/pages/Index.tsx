@@ -6,8 +6,6 @@ import heroImg from "@/assets/hero.jpg";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { AuthDialog } from "@/components/AuthDialog";
-import { OfferCard } from "@/components/OfferCard";
-import { seedOffers } from "@/lib/seed";
 import { UserRole } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -257,7 +255,7 @@ const Index = () => {
           </motion.div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {seedOffers.slice(0, 6).map((o, i) => <OfferCard key={o.id} offer={o} index={i} />)}
+            <div className="col-span-full text-center text-muted-foreground py-8">Em breve: profissionais em destaque na sua região.</div>
           </div>
         </div>
       </section>
