@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Compass, PlusSquare, Briefcase, Users, MessageSquare, UserCircle,
-  LogOut, Bell, Search, Building2, User as UserIcon, BriefcaseBusiness, Menu, X, Map, Inbox,
+  LogOut, Bell, Search, Building2, User as UserIcon, BriefcaseBusiness, Menu, X, Inbox,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -28,7 +28,6 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   individual: [
     { to: "/app",            label: "Visão geral", icon: LayoutDashboard, end: true },
     { to: "/app/feed",       label: "Profissionais", icon: Compass },
-    { to: "/app/mapa",       label: "Mapa",        icon: Map },
     { to: "/app/solicitar",  label: "Solicitar help", icon: PlusSquare },
     { to: "/app/mensagens",  label: "Mensagens", icon: MessageSquare },
     { to: "/app/perfil",     label: "Perfil", icon: UserCircle },
@@ -36,7 +35,6 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   freelancer: [
     { to: "/app",            label: "Visão geral", icon: LayoutDashboard, end: true },
     { to: "/app/feed",       label: "Demandas abertas", icon: Compass },
-    { to: "/app/mapa",       label: "Mapa",        icon: Map },
     { to: "/app/oferecer",   label: "Anunciar serviço", icon: PlusSquare },
     { to: "/app/minhas-candidaturas", label: "Minhas candidaturas", icon: Inbox },
     { to: "/app/vagas",      label: "Vagas formais", icon: Briefcase },
@@ -46,7 +44,6 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   company: [
     { to: "/app",            label: "Visão geral", icon: LayoutDashboard, end: true },
     { to: "/app/feed",       label: "Buscar profissionais", icon: Compass },
-    { to: "/app/mapa",       label: "Mapa",        icon: Map },
     { to: "/app/solicitar",  label: "Nova solicitação", icon: PlusSquare },
     { to: "/app/vagas",      label: "Minhas vagas", icon: Briefcase },
     { to: "/app/candidatos", label: "Candidatos", icon: Users },
