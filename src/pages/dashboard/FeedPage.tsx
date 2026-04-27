@@ -40,19 +40,31 @@ export default function FeedPage() {
       if (isFreelancer) {
         const { data } = await supabase
           .from("help_requests")
-          .select("*, author:profiles!help_requests_author_id_fkey(*)")
+          .select("*")
           .eq("status", "open")
           .order("created_at", { ascending: false })
           .limit(60);
-        setRequests((data as any) ?? []);
+        const rows = (data as any[]) ?? [];
+        const ids = Array.from(new Set(rows.map(r => r.author_id)));
+        const { data: authors } = ids.length
+          ? await supabase.from("profiles_public").select("*").in("user_id", ids)
+          : { data: [] as any[] };
+        const byId = new Map((authors ?? []).map((p: any) => [p.user_id, p]));
+        setRequests(rows.map(r => ({ ...r, author: byId.get(r.author_id) })) as any);
       } else {
         const { data } = await supabase
           .from("help_offers")
-          .select("*, freelancer:profiles!help_offers_freelancer_id_fkey(*)")
+          .select("*")
           .eq("active", true)
           .order("created_at", { ascending: false })
           .limit(60);
-        setOffers((data as any) ?? []);
+        const rows = (data as any[]) ?? [];
+        const ids = Array.from(new Set(rows.map(r => r.freelancer_id)));
+        const { data: freelancers } = ids.length
+          ? await supabase.from("profiles_public").select("*").in("user_id", ids)
+          : { data: [] as any[] };
+        const byId = new Map((freelancers ?? []).map((p: any) => [p.user_id, p]));
+        setOffers(rows.map(r => ({ ...r, freelancer: byId.get(r.freelancer_id) })) as any);
       }
       setLoading(false);
     })();
