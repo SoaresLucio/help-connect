@@ -23,11 +23,11 @@ export function useNotifications() {
   useEffect(() => {
     refresh();
     if (!user) return;
-    const channel = supabase
-      .channel(`notifications:${user.id}`)
-      .on("postgres_changes",
+    const channel = supabase.channel(`notifications:${user.id}:${Math.random().toString(36).slice(2)}`);
+    channel
+      .on("postgres_changes" as any,
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        (payload) => {
+        (payload: any) => {
           const n = payload.new as NotificationItem;
           setItems((prev) => [n, ...prev]);
           toast(n.title, { description: n.body ?? undefined });
