@@ -6,8 +6,6 @@ import heroImg from "@/assets/hero.jpg";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { AuthDialog } from "@/components/AuthDialog";
-import { OfferCard } from "@/components/OfferCard";
-import { seedOffers } from "@/lib/seed";
 import { UserRole } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
 
