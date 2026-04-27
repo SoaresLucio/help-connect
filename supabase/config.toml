@@ -1,1 +1,10 @@
 project_id = "ckryoarbhxjeqkjpykht"
+
+[functions.asaas-create-payment]
+verify_jwt = true
+
+[functions.asaas-release-payment]
+verify_jwt = true
+
+[functions.asaas-webhook]
+verify_jwt = false
