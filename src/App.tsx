@@ -20,7 +20,6 @@ import CandidatesKanban from "./pages/dashboard/CandidatesKanban";
 import MessagesPage from "./pages/dashboard/MessagesPage";
 import ProfilePage from "./pages/dashboard/ProfilePage";
 import MyApplicationsPage from "./pages/dashboard/MyApplicationsPage";
-import MapPage from "./pages/dashboard/MapPage";
 import PaymentReturn from "./pages/PaymentReturn";
 
 const queryClient = new QueryClient();
@@ -40,7 +39,6 @@ const App = () => (
             <Route path="/app" element={<DashboardLayout />}>
               <Route index element={<DashboardHome />} />
               <Route path="feed" element={<FeedPage />} />
-              <Route path="mapa" element={<MapPage />} />
               <Route path="solicitar" element={<RequestNew />} />
               <Route path="solicitar/:id" element={<RequestNew />} />
               <Route path="oferecer" element={<OfferNew />} />
