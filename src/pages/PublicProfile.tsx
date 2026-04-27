@@ -19,13 +19,19 @@ export default function PublicProfile() {
     (async () => {
       if (!userId) return;
       const [{ data: prof }, { data: revs }, { data: offs }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
-        supabase.from("reviews").select("*, reviewer:profiles!reviews_reviewer_id_fkey(*)").eq("reviewed_user_id", userId).order("created_at", { ascending: false }).limit(20),
-        supabase.from("help_offers").select("*, freelancer:profiles!help_offers_freelancer_id_fkey(*)").eq("freelancer_id", userId).eq("active", true),
+        supabase.from("profiles_public").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("reviews").select("*").eq("reviewed_user_id", userId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("help_offers").select("*").eq("freelancer_id", userId).eq("active", true),
       ]);
       setProfile((prof as any) ?? null);
-      setReviews((revs as any) ?? []);
-      setOffers((offs as any) ?? []);
+      // Hydrate reviewer profile data via the safe view
+      const reviewerIds = Array.from(new Set(((revs as any[]) ?? []).map(r => r.reviewer_id)));
+      const { data: reviewers } = reviewerIds.length
+        ? await supabase.from("profiles_public").select("*").in("user_id", reviewerIds)
+        : { data: [] as any[] };
+      const byId = new Map((reviewers ?? []).map((p: any) => [p.user_id, p]));
+      setReviews((((revs as any[]) ?? []).map(r => ({ ...r, reviewer: byId.get(r.reviewer_id) }))) as any);
+      setOffers((((offs as any[]) ?? []).map(o => ({ ...o, freelancer: prof }))) as any);
       setLoading(false);
     })();
   }, [userId]);
