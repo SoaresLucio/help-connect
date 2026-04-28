@@ -44,7 +44,8 @@ Deno.serve(async (req) => {
 
     return json({ ok: true });
   } catch (e: any) {
-    return json({ error: e.message ?? String(e) }, 500);
+    console.error("asaas-release-payment error", e);
+    return json({ error: "Internal server error. Please try again." }, 500);
   }
 });
 
