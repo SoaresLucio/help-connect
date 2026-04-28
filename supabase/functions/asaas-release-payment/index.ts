@@ -24,8 +24,8 @@ Deno.serve(async (req) => {
     if (error || !payment) return json({ error: "Payment not found" }, 404);
     if (payment.payer_id !== user.id) return json({ error: "Forbidden" }, 403);
 
-    if (payment.status !== "escrow_held" && payment.status !== "pending") {
-      return json({ error: `Cannot release from status ${payment.status}` }, 400);
+    if (payment.status !== "escrow_held") {
+      return json({ error: "Payment must be in escrow before it can be released" }, 400);
     }
 
     await sb.from("payments").update({

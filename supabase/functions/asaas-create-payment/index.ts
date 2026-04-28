@@ -33,6 +33,23 @@ Deno.serve(async (req) => {
 
     const { application_id, payee_id, amount_cents, description } = await req.json();
     if (!payee_id || !amount_cents) return json({ error: "Missing fields" }, 400);
+    if (typeof amount_cents !== "number" || !Number.isFinite(amount_cents) || amount_cents < 100 || amount_cents > 100_000_000) {
+      return json({ error: "Invalid amount_cents" }, 400);
+    }
+
+    // Validate amount and counterpart against the application (prevents underpayment fraud)
+    if (application_id) {
+      const { data: app, error: appErr } = await sb.from("applications")
+        .select("proposed_price, owner_id, candidate_id")
+        .eq("id", application_id).maybeSingle();
+      if (appErr || !app) return json({ error: "Application not found" }, 404);
+      if (app.owner_id !== user.id) return json({ error: "Only the application owner can pay" }, 403);
+      if (app.candidate_id !== payee_id) return json({ error: "payee_id does not match application candidate" }, 400);
+      const expectedCents = Math.round(Number(app.proposed_price ?? 0) * 100);
+      if (!expectedCents || Math.abs(amount_cents - expectedCents) > 1) {
+        return json({ error: "amount_cents does not match agreed price" }, 400);
+      }
+    }
 
     const fee_cents = Math.round(amount_cents * FEE_PERCENT / 100);
     const net_cents = amount_cents - fee_cents;
