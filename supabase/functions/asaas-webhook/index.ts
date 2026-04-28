@@ -7,6 +7,12 @@ const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
+    // Verify ASAAS webhook token to prevent spoofed payment events
+    const expectedToken = Deno.env.get("ASAAS_WEBHOOK_TOKEN");
+    const receivedToken = req.headers.get("asaas-access-token");
+    if (!expectedToken || receivedToken !== expectedToken) {
+      return new Response("Forbidden", { status: 403, headers: cors });
+    }
     const body = await req.json();
     const event = body?.event as string | undefined;
     const charge = body?.payment;
