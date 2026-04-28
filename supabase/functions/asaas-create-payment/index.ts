@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     return json({ payment_id: payment.id, invoice_url: charge.invoiceUrl, pix_qr: pixQr, pix_copy_paste: pixCp });
   } catch (e: any) {
     console.error("asaas-create-payment error", e);
-    return json({ error: e.message ?? String(e) }, 500);
+    return json({ error: "Internal server error. Please try again." }, 500);
   }
 });
 
