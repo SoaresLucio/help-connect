@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Application, ApplicationStatus, Profile } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, MessageSquare, Check, X, Star } from "lucide-react";
+import { Loader2, MessageSquare, Check, X, Star, User } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { pushNotification } from "@/hooks/useNotifications";
@@ -50,6 +51,32 @@ export default function CandidatesKanban() {
     await pushNotification(app.candidate_id, "Atualização da sua candidatura", `Status atualizado para: ${labels[status]}`, "application", "/app/minhas-candidaturas");
     toast.success("Candidato movido");
   };
+
+  const hireAndPay = async (app: Application) => {
+    if (!user) return;
+    if (!app.proposed_price || app.proposed_price <= 0) {
+      toast.error("Esta proposta não tem valor combinado. Negocie pelo chat antes de contratar.");
+      return;
+    }
+    try {
+      await supabase.from("applications").update({ status: "hired" }).eq("id", app.id);
+      const { data, error } = await supabase.functions.invoke("asaas-create-payment", {
+        body: {
+          application_id: app.id,
+          payee_id: app.candidate_id,
+          amount_cents: Math.round(Number(app.proposed_price) * 100),
+          description: `HelpAqui · Contratação`,
+        },
+      });
+      if (error) throw error;
+      await pushNotification(app.candidate_id, "Você foi contratado!",
+        "O cliente está efetuando o pagamento em garantia.", "application", "/app/minhas-candidaturas");
+      window.location.href = `/pagamento/${data.payment_id}`;
+    } catch (e: any) {
+      toast.error(e.message ?? "Falha ao iniciar contratação");
+    }
+  };
+
 
   const startChat = async (app: Application & { candidate?: Profile }) => {
     if (!user) return;
@@ -101,18 +128,20 @@ export default function CandidatesKanban() {
                   return (
                     <motion.div key={app.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                       className="rounded-xl border bg-card p-3 shadow-sm">
-                      <div className="flex items-start gap-2">
+                      <Link to={`/u/${app.candidate_id}`} className="flex items-start gap-2 hover:bg-secondary/40 rounded-md p-1 -m-1 transition-colors">
                         <Avatar className="h-8 w-8">
                           {c?.avatar_url && <AvatarImage src={c.avatar_url} />}
                           <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-semibold truncate">{name}</div>
-                          {c?.rating_avg && c.rating_avg > 0 && (
-                            <div className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5"><Star className="h-3 w-3 fill-accent text-accent" /> {c.rating_avg.toFixed(1)}</div>
+                          {c?.rating_avg && c.rating_avg > 0 ? (
+                            <div className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5"><Star className="h-3 w-3 fill-accent text-accent" /> {c.rating_avg.toFixed(1)} · {c.reviews_count}</div>
+                          ) : (
+                            <div className="text-[10px] text-muted-foreground">Ver perfil →</div>
                           )}
                         </div>
-                      </div>
+                      </Link>
                       {app.message && <p className="text-xs text-muted-foreground mt-2 line-clamp-3">{app.message}</p>}
                       {app.proposed_price != null && app.proposed_price > 0 && (
                         <div className="mt-2 text-sm font-bold text-primary">{formatBRL(app.proposed_price)}</div>
@@ -122,7 +151,7 @@ export default function CandidatesKanban() {
                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => move(app, "review")}>Análise</Button>
                         )}
                         {col.key !== "hired" && col.key !== "completed" && (
-                          <Button size="sm" variant="hero" className="h-7 text-xs" onClick={() => move(app, "hired")}><Check className="h-3 w-3" />Contratar</Button>
+                          <Button size="sm" variant="hero" className="h-7 text-xs" onClick={() => hireAndPay(app)}><Check className="h-3 w-3" />Contratar</Button>
                         )}
                         {col.key !== "rejected" && col.key !== "completed" && (
                           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => move(app, "rejected")}><X className="h-3 w-3" />Recusar</Button>
