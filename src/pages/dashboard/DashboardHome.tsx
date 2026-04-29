@@ -9,7 +9,7 @@ import { HelpRequest, HelpOffer, UserRole } from "@/lib/types";
 import { CATEGORY_META, formatBRL } from "@/lib/categories";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
+// Switch removido — substituído por toggle 3-estados para empresa
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
