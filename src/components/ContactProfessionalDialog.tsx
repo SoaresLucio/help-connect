@@ -120,6 +120,10 @@ export function ContactProfessionalDialog({ offer, onClose }: { offer: HelpOffer
               <Label className="text-xs">Mensagem inicial</Label>
               <Textarea rows={4} value={message} onChange={e => setMessage(e.target.value)}
                 placeholder="Olá! Preciso do seu serviço para..." />
+              <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
+                <ShieldAlert className="h-3 w-3 mt-0.5 text-warning shrink-0" />
+                <span>Por segurança, é proibido enviar telefone, e-mail ou pedir contato fora da HelpAqui.</span>
+              </div>
             </div>
             <Button variant="hero" className="w-full" onClick={sendContact} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
