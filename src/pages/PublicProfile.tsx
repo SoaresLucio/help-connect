@@ -80,6 +80,13 @@ export default function PublicProfile() {
           </div>
         </div>
 
+        {/* Métricas resumidas */}
+        <div className="grid grid-cols-3 gap-3 mt-4">
+          <Stat label="Avaliação" value={profile.rating_avg > 0 ? profile.rating_avg.toFixed(1) : "—"} />
+          <Stat label="Avaliações" value={String(profile.reviews_count)} />
+          <Stat label="Verificado" value={profile.identity_verified ? "Sim" : "Não"} />
+        </div>
+
         {offers.length > 0 && (
           <section className="mt-8">
             <h2 className="font-display text-xl font-semibold mb-4">Serviços oferecidos</h2>
@@ -92,23 +99,31 @@ export default function PublicProfile() {
         <section className="mt-8">
           <h2 className="font-display text-xl font-semibold mb-4">Avaliações ({reviews.length})</h2>
           {reviews.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Ainda não há avaliações.</p>
+            <p className="text-sm text-muted-foreground">Ainda não há avaliações. Seja o primeiro a contratar e avaliar.</p>
           ) : (
             <div className="space-y-3">
-              {reviews.map(r => (
-                <div key={r.id} className="rounded-xl border bg-card p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm">{r.reviewer?.display_name || r.reviewer?.full_name || "Cliente"}</span>
-                    <span className="flex items-center gap-0.5">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? "fill-accent text-accent" : "text-muted"}`} />
-                      ))}
-                    </span>
+              {reviews.map(r => {
+                const reviewerName = r.reviewer?.display_name || r.reviewer?.full_name || "Cliente";
+                const initials = reviewerName.split(" ").map(s => s[0]).slice(0,2).join("").toUpperCase();
+                return (
+                  <div key={r.id} className="rounded-xl border bg-card p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Avatar className="h-7 w-7">
+                        {r.reviewer?.avatar_url && <AvatarImage src={r.reviewer.avatar_url} />}
+                        <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-semibold text-sm flex-1">{reviewerName}</span>
+                      <span className="flex items-center gap-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? "fill-accent text-accent" : "text-muted"}`} />
+                        ))}
+                      </span>
+                    </div>
+                    {r.comment && <p className="text-sm text-muted-foreground">{r.comment}</p>}
+                    <div className="text-[10px] text-muted-foreground mt-1.5">{new Date(r.created_at).toLocaleDateString("pt-BR")}</div>
                   </div>
-                  {r.comment && <p className="text-sm text-muted-foreground">{r.comment}</p>}
-                  <div className="text-[10px] text-muted-foreground mt-1.5">{new Date(r.created_at).toLocaleDateString("pt-BR")}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
