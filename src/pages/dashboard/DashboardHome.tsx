@@ -56,7 +56,7 @@ export default function DashboardHome() {
   const { profile, activeRole, loading: authLoading, user } = useAuth();
   const navigate = useNavigate();
   const role: UserRole = activeRole ?? "individual";
-  const defaultMode: MapMode = role === "freelancer" ? "work" : "hire";
+  const defaultMode: MapMode = role === "freelancer" ? "work" : role === "company" ? "both" : "hire";
   const [mode, setMode] = useState<MapMode>(defaultMode);
   const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [offers, setOffers] = useState<HelpOffer[]>([]);
