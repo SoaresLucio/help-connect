@@ -5,9 +5,11 @@ import { ChatThread, ChatMessage, Profile } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { pushNotification } from "@/hooks/useNotifications";
+import { checkExternalContact } from "@/lib/contentFilter";
+import { toast } from "sonner";
 
 export default function MessagesPage() {
   const { user } = useAuth();
