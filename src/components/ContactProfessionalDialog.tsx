@@ -9,9 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { HelpOffer } from "@/lib/types";
 import { formatBRL } from "@/lib/categories";
-import { ShieldCheck, Loader2, ArrowRight } from "lucide-react";
+import { ShieldCheck, Loader2, ArrowRight, ShieldAlert } from "lucide-react";
 import { pushNotification } from "@/hooks/useNotifications";
 import { useNavigate } from "react-router-dom";
+import { checkExternalContact } from "@/lib/contentFilter";
 
 const FEE_PERCENT = 10;
 
