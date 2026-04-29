@@ -138,7 +138,11 @@ export default function MessagesPage() {
               })}
               {messages.length === 0 && <p className="text-center text-sm text-muted-foreground py-8">Comece a conversa enviando uma mensagem.</p>}
             </div>
-            <div className="p-3 border-t flex gap-2">
+            <div className="px-3 pt-2 pb-1 border-t flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <ShieldAlert className="h-3 w-3 text-warning" />
+              Por segurança, é proibido trocar telefones, e-mails ou contatos fora da HelpAqui.
+            </div>
+            <div className="p-3 pt-2 flex gap-2">
               <Input value={text} onChange={e => setText(e.target.value)} placeholder="Digite uma mensagem..."
                 onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), send())} />
               <Button variant="hero" onClick={send} disabled={sending || !text.trim()}>
