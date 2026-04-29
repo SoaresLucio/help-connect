@@ -52,6 +52,32 @@ export default function CandidatesKanban() {
     toast.success("Candidato movido");
   };
 
+  const hireAndPay = async (app: Application) => {
+    if (!user) return;
+    if (!app.proposed_price || app.proposed_price <= 0) {
+      toast.error("Esta proposta não tem valor combinado. Negocie pelo chat antes de contratar.");
+      return;
+    }
+    try {
+      await supabase.from("applications").update({ status: "hired" }).eq("id", app.id);
+      const { data, error } = await supabase.functions.invoke("asaas-create-payment", {
+        body: {
+          application_id: app.id,
+          payee_id: app.candidate_id,
+          amount_cents: Math.round(Number(app.proposed_price) * 100),
+          description: `HelpAqui · Contratação`,
+        },
+      });
+      if (error) throw error;
+      await pushNotification(app.candidate_id, "Você foi contratado!",
+        "O cliente está efetuando o pagamento em garantia.", "application", "/app/minhas-candidaturas");
+      window.location.href = `/pagamento/${data.payment_id}`;
+    } catch (e: any) {
+      toast.error(e.message ?? "Falha ao iniciar contratação");
+    }
+  };
+
+
   const startChat = async (app: Application & { candidate?: Profile }) => {
     if (!user) return;
     const a = user.id < app.candidate_id ? user.id : app.candidate_id;
