@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Application, ApplicationStatus, Profile } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, MessageSquare, Check, X, Star } from "lucide-react";
+import { Loader2, MessageSquare, Check, X, Star, User } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { pushNotification } from "@/hooks/useNotifications";
@@ -101,18 +102,20 @@ export default function CandidatesKanban() {
                   return (
                     <motion.div key={app.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                       className="rounded-xl border bg-card p-3 shadow-sm">
-                      <div className="flex items-start gap-2">
+                      <Link to={`/u/${app.candidate_id}`} className="flex items-start gap-2 hover:bg-secondary/40 rounded-md p-1 -m-1 transition-colors">
                         <Avatar className="h-8 w-8">
                           {c?.avatar_url && <AvatarImage src={c.avatar_url} />}
                           <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-semibold truncate">{name}</div>
-                          {c?.rating_avg && c.rating_avg > 0 && (
-                            <div className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5"><Star className="h-3 w-3 fill-accent text-accent" /> {c.rating_avg.toFixed(1)}</div>
+                          {c?.rating_avg && c.rating_avg > 0 ? (
+                            <div className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5"><Star className="h-3 w-3 fill-accent text-accent" /> {c.rating_avg.toFixed(1)} · {c.reviews_count}</div>
+                          ) : (
+                            <div className="text-[10px] text-muted-foreground">Ver perfil →</div>
                           )}
                         </div>
-                      </div>
+                      </Link>
                       {app.message && <p className="text-xs text-muted-foreground mt-2 line-clamp-3">{app.message}</p>}
                       {app.proposed_price != null && app.proposed_price > 0 && (
                         <div className="mt-2 text-sm font-bold text-primary">{formatBRL(app.proposed_price)}</div>

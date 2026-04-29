@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { MapPin, Clock, MessageSquare } from "lucide-react";
+import { MapPin, Clock, MessageSquare, Star } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CATEGORY_META, formatBRL } from "@/lib/categories";
@@ -43,14 +44,21 @@ export function RequestCard({ request, index = 0, onApply }: Props) {
         <h3 className="font-display text-lg font-semibold leading-snug line-clamp-2">{request.title}</h3>
         <p className="mt-1 text-sm text-muted-foreground line-clamp-2 leading-relaxed">{request.description}</p>
 
-        <div className="mt-4 flex items-center gap-2">
+        <Link to={`/u/${request.author_id}`} className="mt-4 flex items-center gap-2 hover:bg-secondary/40 rounded-lg p-1 -m-1 transition-colors">
           <Avatar className="h-7 w-7">
             {author?.avatar_url ? <AvatarImage src={author.avatar_url} /> : null}
             <AvatarFallback className="bg-secondary text-foreground text-[10px] font-semibold">{initials}</AvatarFallback>
           </Avatar>
-          <span className="text-xs font-medium truncate flex-1">{name}</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium truncate">{name}</div>
+            {author && author.rating_avg > 0 && (
+              <div className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5">
+                <Star className="h-2.5 w-2.5 fill-accent text-accent" /> {author.rating_avg.toFixed(1)} · {author.reviews_count}
+              </div>
+            )}
+          </div>
           <span className="text-[10px] text-muted-foreground">{request.proposals_count} propostas</span>
-        </div>
+        </Link>
 
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {request.city}{request.neighborhood ? `, ${request.neighborhood}` : ""}</span>
