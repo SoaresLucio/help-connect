@@ -131,3 +131,13 @@ export default function PublicProfile() {
     </div>
   );
 }
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border bg-card p-3 text-center">
+      <div className="text-lg font-bold font-display">{value}</div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
