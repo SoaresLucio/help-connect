@@ -107,9 +107,10 @@ export default function DashboardHome() {
 
   const pins: Pin[] = useMemo(() => {
     const list: Pin[] = [];
-    if (mode === "work") {
+    if (mode === "work" || mode === "both") {
       requests.forEach(r => r.latitude && r.longitude && list.push({ kind: "request", data: r, lat: r.latitude, lng: r.longitude }));
-    } else {
+    }
+    if (mode === "hire" || mode === "both") {
       offers.forEach(o => o.latitude && o.longitude && list.push({ kind: "offer", data: o, lat: o.latitude, lng: o.longitude }));
     }
     if (geo) return list.filter(p => haversineKm(geo, { latitude: p.lat, longitude: p.lng }) <= radiusKm);
