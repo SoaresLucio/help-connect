@@ -21,7 +21,7 @@ import { RequestCard } from "@/components/RequestCard";
 import { OfferCard } from "@/components/OfferCard";
 import { useNavigate, Link } from "react-router-dom";
 
-type MapMode = "work" | "hire";
+type MapMode = "work" | "hire" | "both";
 type Pin =
   | { kind: "request"; data: HelpRequest; lat: number; lng: number }
   | { kind: "offer"; data: HelpOffer; lat: number; lng: number };
