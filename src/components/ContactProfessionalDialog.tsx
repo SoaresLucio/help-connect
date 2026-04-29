@@ -37,6 +37,8 @@ export function ContactProfessionalDialog({ offer, onClose }: { offer: HelpOffer
   const sendContact = async () => {
     if (!user || !profile) { toast.error("Faça login"); return; }
     if (message.trim().length < 5) { toast.error("Escreva uma mensagem mais detalhada"); return; }
+    const check = checkExternalContact(message);
+    if (!check.ok) { toast.error(check.reason!); return; }
     setLoading(true);
     try {
       // cria/recupera thread
