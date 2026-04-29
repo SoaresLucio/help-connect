@@ -9,9 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { HelpOffer } from "@/lib/types";
 import { formatBRL } from "@/lib/categories";
-import { ShieldCheck, Loader2, ArrowRight } from "lucide-react";
+import { ShieldCheck, Loader2, ArrowRight, ShieldAlert } from "lucide-react";
 import { pushNotification } from "@/hooks/useNotifications";
 import { useNavigate } from "react-router-dom";
+import { checkExternalContact } from "@/lib/contentFilter";
 
 const FEE_PERCENT = 10;
 
@@ -36,6 +37,8 @@ export function ContactProfessionalDialog({ offer, onClose }: { offer: HelpOffer
   const sendContact = async () => {
     if (!user || !profile) { toast.error("Faça login"); return; }
     if (message.trim().length < 5) { toast.error("Escreva uma mensagem mais detalhada"); return; }
+    const check = checkExternalContact(message);
+    if (!check.ok) { toast.error(check.reason!); return; }
     setLoading(true);
     try {
       // cria/recupera thread
@@ -117,6 +120,10 @@ export function ContactProfessionalDialog({ offer, onClose }: { offer: HelpOffer
               <Label className="text-xs">Mensagem inicial</Label>
               <Textarea rows={4} value={message} onChange={e => setMessage(e.target.value)}
                 placeholder="Olá! Preciso do seu serviço para..." />
+              <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
+                <ShieldAlert className="h-3 w-3 mt-0.5 text-warning shrink-0" />
+                <span>Por segurança, é proibido enviar telefone, e-mail ou pedir contato fora da HelpAqui.</span>
+              </div>
             </div>
             <Button variant="hero" className="w-full" onClick={sendContact} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}

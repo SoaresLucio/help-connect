@@ -5,9 +5,11 @@ import { ChatThread, ChatMessage, Profile } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { pushNotification } from "@/hooks/useNotifications";
+import { checkExternalContact } from "@/lib/contentFilter";
+import { toast } from "sonner";
 
 export default function MessagesPage() {
   const { user } = useAuth();
@@ -65,6 +67,11 @@ export default function MessagesPage() {
 
   const send = async () => {
     if (!user || !activeId || !text.trim()) return;
+    const check = checkExternalContact(text);
+    if (!check.ok) {
+      toast.error(check.reason ?? "Mensagem bloqueada por política da HelpAqui.");
+      return;
+    }
     setSending(true);
     try {
       const t = threads.find(x => x.id === activeId);
@@ -131,7 +138,11 @@ export default function MessagesPage() {
               })}
               {messages.length === 0 && <p className="text-center text-sm text-muted-foreground py-8">Comece a conversa enviando uma mensagem.</p>}
             </div>
-            <div className="p-3 border-t flex gap-2">
+            <div className="px-3 pt-2 pb-1 border-t flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <ShieldAlert className="h-3 w-3 text-warning" />
+              Por segurança, é proibido trocar telefones, e-mails ou contatos fora da HelpAqui.
+            </div>
+            <div className="p-3 pt-2 flex gap-2">
               <Input value={text} onChange={e => setText(e.target.value)} placeholder="Digite uma mensagem..."
                 onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), send())} />
               <Button variant="hero" onClick={send} disabled={sending || !text.trim()}>
