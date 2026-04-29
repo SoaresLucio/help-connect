@@ -151,7 +151,7 @@ export default function CandidatesKanban() {
                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => move(app, "review")}>Análise</Button>
                         )}
                         {col.key !== "hired" && col.key !== "completed" && (
-                          <Button size="sm" variant="hero" className="h-7 text-xs" onClick={() => move(app, "hired")}><Check className="h-3 w-3" />Contratar</Button>
+                          <Button size="sm" variant="hero" className="h-7 text-xs" onClick={() => hireAndPay(app)}><Check className="h-3 w-3" />Contratar</Button>
                         )}
                         {col.key !== "rejected" && col.key !== "completed" && (
                           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => move(app, "rejected")}><X className="h-3 w-3" />Recusar</Button>
