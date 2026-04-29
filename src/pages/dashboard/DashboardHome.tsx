@@ -179,26 +179,36 @@ export default function DashboardHome() {
       {/* Stats */}
       <StatsRow role={role} />
 
-      {/* Mapa reduzido */}
-      <section className="relative rounded-2xl border bg-card overflow-hidden h-[340px] lg:h-[380px]">
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[500] rounded-full bg-card/95 backdrop-blur border shadow-lg px-3 py-1.5 flex items-center gap-2">
-          <span className={`text-[11px] font-semibold ${mode === "work" ? "text-primary" : "text-muted-foreground"}`}>Trabalhar</span>
-          <Switch checked={mode === "hire"} onCheckedChange={(v) => setMode(v ? "hire" : "work")} />
-          <span className={`text-[11px] font-semibold ${mode === "hire" ? "text-primary" : "text-muted-foreground"}`}>Contratar</span>
-        </div>
+      {/* Mapa reduzido — isolado em seu próprio stacking context para não conflitar com sidebar/header */}
+      <section className="relative isolate z-0 rounded-2xl border bg-card overflow-hidden h-[300px] lg:h-[360px] map-shell">
+        {role === "company" && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[20] rounded-full bg-card/95 backdrop-blur border shadow-lg px-1 py-1 flex items-center gap-1">
+            {(["both", "work", "hire"] as MapMode[]).map(m => (
+              <button key={m} onClick={() => setMode(m)}
+                className={`text-[11px] font-semibold px-3 py-1 rounded-full transition ${mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}>
+                {m === "both" ? "Tudo" : m === "work" ? "Solicitações" : "Profissionais"}
+              </button>
+            ))}
+          </div>
+        )}
+        {role !== "company" && (
+          <div className="absolute top-3 left-3 z-[20] rounded-full bg-card/95 backdrop-blur border shadow-md px-3 py-1.5 text-[11px] font-semibold">
+            {role === "freelancer" ? "🔍 Solicitações de Help" : "💼 Profissionais perto de você"}
+          </div>
+        )}
 
-        <div className="absolute top-3 right-3 z-[500]">
+        <div className="absolute top-3 right-3 z-[20]">
           <Button size="sm" variant="hero" onClick={locate}><Locate className="h-4 w-4" />Localizar</Button>
         </div>
 
         {geo && (
-          <div className="absolute bottom-3 left-3 right-3 lg:right-auto lg:w-72 z-[500] rounded-2xl bg-card/95 backdrop-blur border shadow-lg p-3">
+          <div className="absolute bottom-3 left-3 right-3 lg:right-auto lg:w-72 z-[20] rounded-2xl bg-card/95 backdrop-blur border shadow-lg p-3">
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="font-semibold">Raio</span>
               <span className="text-primary font-bold">{radiusKm} km</span>
             </div>
             <Slider value={[radiusKm]} onValueChange={v => setRadiusKm(v[0])} min={1} max={50} step={1} />
-            <div className="text-[10px] text-muted-foreground mt-1.5">{pins.length} {mode === "work" ? "solicitações" : "ofertas"} na área</div>
+            <div className="text-[10px] text-muted-foreground mt-1.5">{pins.length} pins na área</div>
           </div>
         )}
 
@@ -209,13 +219,21 @@ export default function DashboardHome() {
             {pins.map((p, i) => {
               const html = p.kind === "request"
                 ? `<div class="ha-pin-bubble bg-primary text-primary-foreground"><span>${labelIcon(p.data.category)}</span><span>${formatBRL((p.data as HelpRequest).budget)}</span></div>`
-                : `<div class="ha-pin-bubble bg-accent text-accent-foreground"><span>★ ${(((p.data as HelpOffer).freelancer?.rating_avg ?? 0)).toFixed(1)}</span></div>`;
+                : `<div class="ha-pin-bubble bg-accent text-accent-foreground"><span>${labelIcon(p.data.category)}</span><span>★ ${(((p.data as HelpOffer).freelancer?.rating_avg ?? 0)).toFixed(1)}</span></div>`;
               return <Marker key={`${p.kind}-${p.data.id}-${i}`} position={[p.lat, p.lng]} icon={pinIcon(html)} eventHandlers={{ click: () => setSelected(p) }} />;
             })}
           </AnimatePresence>
         </MapContainer>
 
         <style>{`
+          /* Confina o leaflet dentro do stacking context da seção .map-shell para que não vaze acima do header/sidebar */
+          .map-shell .leaflet-pane,
+          .map-shell .leaflet-top,
+          .map-shell .leaflet-bottom,
+          .map-shell .leaflet-control { z-index: 1 !important; }
+          .map-shell .leaflet-popup-pane { z-index: 5 !important; }
+          .map-shell .leaflet-marker-pane { z-index: 4 !important; }
+          .map-shell .leaflet-tooltip-pane { z-index: 6 !important; }
           .ha-pin { transform-origin: bottom center; animation: ha-pop .35s cubic-bezier(.16,1,.3,1); }
           @keyframes ha-pop { from { transform: translateY(-8px) scale(.8); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
           .ha-pin-bubble { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 11px; padding: 6px 10px; border-radius: 999px; box-shadow: 0 8px 20px -6px rgba(0,0,0,.35); border: 2px solid white; white-space: nowrap; position: relative; }
