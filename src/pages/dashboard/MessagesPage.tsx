@@ -67,6 +67,11 @@ export default function MessagesPage() {
 
   const send = async () => {
     if (!user || !activeId || !text.trim()) return;
+    const check = checkExternalContact(text);
+    if (!check.ok) {
+      toast.error(check.reason ?? "Mensagem bloqueada por política da HelpAqui.");
+      return;
+    }
     setSending(true);
     try {
       const t = threads.find(x => x.id === activeId);
