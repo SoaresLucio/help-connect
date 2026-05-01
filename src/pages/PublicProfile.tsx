@@ -1,30 +1,33 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Profile, Review, HelpOffer } from "@/lib/types";
+import { Profile, Review, HelpOffer, HelpRequest } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Star, MapPin, BadgeCheck, ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { OfferCard } from "@/components/OfferCard";
+import { RequestCard } from "@/components/RequestCard";
 
 export default function PublicProfile() {
   const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [offers, setOffers] = useState<HelpOffer[]>([]);
+  const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       if (!userId) return;
-      const [{ data: prof }, { data: revs }, { data: offs }] = await Promise.all([
+      const [{ data: prof }, { data: revs }, { data: offs }, { data: reqs }] = await Promise.all([
         supabase.from("profiles_public").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("reviews").select("*").eq("reviewed_user_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("help_offers").select("*").eq("freelancer_id", userId).eq("active", true),
+        supabase.from("help_requests").select("*").eq("author_id", userId).eq("status", "open").order("created_at", { ascending: false }).limit(10),
       ]);
       setProfile((prof as any) ?? null);
-      // Hydrate reviewer profile data via the safe view
       const reviewerIds = Array.from(new Set(((revs as any[]) ?? []).map(r => r.reviewer_id)));
       const { data: reviewers } = reviewerIds.length
         ? await supabase.from("profiles_public").select("*").in("user_id", reviewerIds)
@@ -32,6 +35,7 @@ export default function PublicProfile() {
       const byId = new Map((reviewers ?? []).map((p: any) => [p.user_id, p]));
       setReviews((((revs as any[]) ?? []).map(r => ({ ...r, reviewer: byId.get(r.reviewer_id) }))) as any);
       setOffers((((offs as any[]) ?? []).map(o => ({ ...o, freelancer: prof }))) as any);
+      setRequests((((reqs as any[]) ?? []).map(r => ({ ...r, author: prof }))) as any);
       setLoading(false);
     })();
   }, [userId]);
