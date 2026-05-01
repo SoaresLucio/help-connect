@@ -80,6 +80,24 @@ export function ApplyToRequestDialog({ request, onClose }: { request: HelpReques
             <div className="font-semibold leading-tight">{request.title}</div>
             <div className="text-xs mt-1 text-muted-foreground">Orçamento sugerido: {formatBRL(request.budget)}</div>
           </div>
+
+          {author && (
+            <Link to={`/u/${request.author_id}`} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-secondary/40 transition-colors">
+              <Avatar className="h-10 w-10">
+                {author.avatar_url && <AvatarImage src={author.avatar_url} />}
+                <AvatarFallback>{(author.display_name || author.full_name).slice(0,2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Solicitante</div>
+                <div className="text-sm font-semibold truncate">{author.display_name || author.full_name}</div>
+                <div className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                  <Star className="h-3 w-3 fill-accent text-accent" />
+                  {author.rating_avg > 0 ? author.rating_avg.toFixed(1) : "Novo"} · {author.reviews_count} avaliações
+                </div>
+              </div>
+              <span className="text-xs text-primary inline-flex items-center gap-1"><User className="h-3 w-3" /> Ver perfil</span>
+            </Link>
+          )}
           <div className="space-y-1.5">
             <Label className="text-xs">Sua mensagem</Label>
             <Textarea rows={4} value={message} onChange={e => setMessage(e.target.value)}
