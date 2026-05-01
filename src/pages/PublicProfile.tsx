@@ -51,7 +51,7 @@ export default function PublicProfile() {
       <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
         <div className="container h-16 flex items-center justify-between">
           <Logo />
-          <Link to="/app/feed"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Voltar</Button></Link>
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /> Voltar</Button>
         </div>
       </header>
 
