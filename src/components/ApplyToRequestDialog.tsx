@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { HelpRequest } from "@/lib/types";
+import { HelpRequest, Profile } from "@/lib/types";
 import { formatBRL } from "@/lib/categories";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, User, Star } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { pushNotification } from "@/hooks/useNotifications";
 
 export function ApplyToRequestDialog({ request, onClose }: { request: HelpRequest | null; onClose: () => void }) {
@@ -17,9 +19,14 @@ export function ApplyToRequestDialog({ request, onClose }: { request: HelpReques
   const [message, setMessage] = useState("");
   const [price, setPrice] = useState<number>(0);
   const [loading, setLoading] = useState(false);
+  const [author, setAuthor] = useState<Profile | null>(null);
 
   useEffect(() => {
-    if (request) { setMessage(""); setPrice(request.budget); }
+    if (request) {
+      setMessage(""); setPrice(request.budget);
+      supabase.from("profiles_public").select("*").eq("user_id", request.author_id).maybeSingle()
+        .then(({ data }) => setAuthor((data as any) ?? null));
+    }
   }, [request]);
 
   if (!request) return null;
@@ -73,6 +80,24 @@ export function ApplyToRequestDialog({ request, onClose }: { request: HelpReques
             <div className="font-semibold leading-tight">{request.title}</div>
             <div className="text-xs mt-1 text-muted-foreground">Orçamento sugerido: {formatBRL(request.budget)}</div>
           </div>
+
+          {author && (
+            <Link to={`/u/${request.author_id}`} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-secondary/40 transition-colors">
+              <Avatar className="h-10 w-10">
+                {author.avatar_url && <AvatarImage src={author.avatar_url} />}
+                <AvatarFallback>{(author.display_name || author.full_name).slice(0,2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Solicitante</div>
+                <div className="text-sm font-semibold truncate">{author.display_name || author.full_name}</div>
+                <div className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                  <Star className="h-3 w-3 fill-accent text-accent" />
+                  {author.rating_avg > 0 ? author.rating_avg.toFixed(1) : "Novo"} · {author.reviews_count} avaliações
+                </div>
+              </div>
+              <span className="text-xs text-primary inline-flex items-center gap-1"><User className="h-3 w-3" /> Ver perfil</span>
+            </Link>
+          )}
           <div className="space-y-1.5">
             <Label className="text-xs">Sua mensagem</Label>
             <Textarea rows={4} value={message} onChange={e => setMessage(e.target.value)}

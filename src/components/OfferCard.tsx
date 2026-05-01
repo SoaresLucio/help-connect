@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Star, MapPin, Clock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CATEGORY_META, formatBRL } from "@/lib/categories";
@@ -31,7 +32,7 @@ export function OfferCard({ offer, index = 0, onContact, onView }: Props) {
       transition={{ duration: 0.4, delay: index * 0.04 }}
       className="group rounded-2xl border bg-card p-5 hover:shadow-elev hover:-translate-y-0.5 transition-all"
     >
-      <div className="flex items-start gap-3">
+      <Link to={`/u/${offer.freelancer_id}`} className="flex items-start gap-3 hover:opacity-80 transition-opacity">
         <Avatar className="h-12 w-12 ring-2 ring-secondary">
           {f?.avatar_url ? <AvatarImage src={f.avatar_url} alt={name} /> : null}
           <AvatarFallback className="bg-primary text-primary-foreground font-bold">{initials}</AvatarFallback>
@@ -47,7 +48,7 @@ export function OfferCard({ offer, index = 0, onContact, onView }: Props) {
         <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold ${meta.tone}`}>
           <Icon className="h-3 w-3" /> {meta.label}
         </span>
-      </div>
+      </Link>
 
       <h4 className="mt-4 font-display text-base font-semibold line-clamp-1">{offer.service_name}</h4>
       <p className="mt-1 text-sm text-muted-foreground line-clamp-2 leading-relaxed">{offer.description}</p>

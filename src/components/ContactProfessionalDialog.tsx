@@ -112,9 +112,14 @@ export function ContactProfessionalDialog({ offer, onClose }: { offer: HelpOffer
         {step === "contact" ? (
           <div className="space-y-4">
             <div className="rounded-lg bg-secondary/40 p-3">
-              <div className="text-xs text-muted-foreground">Serviço</div>
-              <div className="font-semibold">{offer.service_name}</div>
-              <div className="text-xs mt-1 text-muted-foreground">Preço base: {formatBRL(offer.pricing_value)}{offer.pricing_type === "hour" ? "/h" : ""}</div>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-xs text-muted-foreground">Serviço</div>
+                  <div className="font-semibold">{offer.service_name}</div>
+                  <div className="text-xs mt-1 text-muted-foreground">Preço base: {formatBRL(offer.pricing_value)}{offer.pricing_type === "hour" ? "/h" : ""}</div>
+                </div>
+                <a href={`/u/${offer.freelancer_id}`} target="_blank" rel="noreferrer" className="text-xs text-primary whitespace-nowrap hover:underline">Ver perfil →</a>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Mensagem inicial</Label>
