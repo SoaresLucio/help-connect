@@ -100,6 +100,15 @@ export default function PublicProfile() {
           </section>
         )}
 
+        {requests.length > 0 && (
+          <section className="mt-8">
+            <h2 className="font-display text-xl font-semibold mb-4">Solicitações abertas</h2>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {requests.map((r, i) => <RequestCard key={r.id} request={{ ...r, author: profile }} index={i} />)}
+            </div>
+          </section>
+        )}
+
         <section className="mt-8">
           <h2 className="font-display text-xl font-semibold mb-4">Avaliações ({reviews.length})</h2>
           {reviews.length === 0 ? (
