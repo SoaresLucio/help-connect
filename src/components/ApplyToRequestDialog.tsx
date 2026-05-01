@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { HelpRequest } from "@/lib/types";
+import { HelpRequest, Profile } from "@/lib/types";
 import { formatBRL } from "@/lib/categories";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, User, Star } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { pushNotification } from "@/hooks/useNotifications";
 
 export function ApplyToRequestDialog({ request, onClose }: { request: HelpRequest | null; onClose: () => void }) {
@@ -17,9 +19,14 @@ export function ApplyToRequestDialog({ request, onClose }: { request: HelpReques
   const [message, setMessage] = useState("");
   const [price, setPrice] = useState<number>(0);
   const [loading, setLoading] = useState(false);
+  const [author, setAuthor] = useState<Profile | null>(null);
 
   useEffect(() => {
-    if (request) { setMessage(""); setPrice(request.budget); }
+    if (request) {
+      setMessage(""); setPrice(request.budget);
+      supabase.from("profiles_public").select("*").eq("user_id", request.author_id).maybeSingle()
+        .then(({ data }) => setAuthor((data as any) ?? null));
+    }
   }, [request]);
 
   if (!request) return null;
